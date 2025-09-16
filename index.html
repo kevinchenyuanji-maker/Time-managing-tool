@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>穩定日常 · MVD</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>穩定日常（MVD）</h1>
+  <button id="installBtn" class="secondary small" hidden>安裝 App</button>
+</header>
+
+<main>
+  <section class="card">
+    <h2>🎯 今日目標</h2>
+    <label>讀書/任務目標</label>
+    <textarea id="goal" placeholder="例：心衰竭章節 2 頁 + 歷屆題 5 題"></textarea>
+    <div class="row">
+      <div>
+        <label>Primary 錨點</label>
+        <input id="primaryStart" type="time"> – <input id="primaryEnd" type="time">
+      </div>
+      <div>
+        <label>Fallback 錨點</label>
+        <input id="fallbackStart" type="time"> – <input id="fallbackEnd" type="time">
+      </div>
+      <div>
+        <label>Recovery 25</label>
+        <input id="recoveryStart" type="time">
+      </div>
+    </div>
+    <div class="row">
+      <button id="saveSettings" class="secondary">儲存設定</button>
+      <button id="newDay" class="secondary">新的一天</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>🚦 開始前抗拒量表（0–10）</h2>
+    <div class="row">
+      <input id="friction" type="range" min="0" max="10" step="1" value="0">
+      <span id="frictionVal">0</span>
+      <button id="logFriction" class="secondary small">記錄</button>
+    </div>
+    <details>
+      <summary>兩分鐘起步指引</summary>
+      <ol>
+        <li>設定 5 分鐘計時器</li>
+        <li>打開講義/題庫/簡報檔</li>
+        <li>寫 1 句「我要找的 3 個問題之一」</li>
+        <li>開始讀第一頁 / 解第一題 / 列第一段大綱</li>
+      </ol>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>⏱️ 計時器</h2>
+    <div id="timerDisplay">00:00</div>
+    <div id="stateDisplay" class="muted">狀態：Idle</div>
+    <div class="grid">
+      <button data-timer="WARMUP_5" class="primary">起步 5′</button>
+      <button data-timer="POMO_25" class="primary">番茄 25′</button>
+      <button data-timer="DEEP_50" class="primary">深度 50′</button>
+      <button data-timer="RECOVERY_25" class="primary">救援 25′</button>
+
+      <button id="pauseBtn" class="secondary">暫停</button>
+      <button id="resumeBtn" class="secondary">繼續</button>
+      <button id="stopBtn" class="danger">停止</button>
+      <button id="breakBtn" class="secondary">休息 5′</button>
+
+      <button id="interruptedBtn" class="warning">被打斷</button>
+      <button id="doneBtn" class="success">記錄完成</button>
+      <button id="leisureBtn" class="secondary">開休閒票</button>
+      <button id="notifyBtn" class="secondary">開啟提醒</button>
+    </div>
+    <div id="helper" class="helper"></div>
+  </section>
+
+  <section class="card">
+    <h2>📚 If–Then 建議</h2>
+    <div id="ifthenBox" class="ifthen"></div>
+  </section>
+
+  <section class="card">
+    <h2>📝 今日紀錄</h2>
+    <div class="row">
+      <button id="exportJson" class="secondary small">匯出 JSON</button>
+      <button id="exportCsv" class="secondary small">匯出 CSV</button>
+      <label class="file">
+        <input type="file" id="importJson" accept="application/json"> 匯入 JSON
+      </label>
+    </div>
+    <ul id="logList" class="loglist"></ul>
+  </section>
+</main>
+
+<footer>
+  <small>v0.1 · 本地儲存 · 可安裝為 PWA（iOS/Windows）</small>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+*{box-sizing:border-box}
+:root{--bg:#0b0b0c;--card:#151518;--text:#eaeaf0;--muted:#a7a7b3;--primary:#4da3ff;--danger:#ff6b6b;--warning:#ffc857;--success:#48d597}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+header,footer{max-width:920px;margin:12px auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between}
+h1{font-size:22px;margin:8px 0}
+main{max-width:920px;margin:0 auto;padding:8px 16px 64px}
+section.card{background:var(--card);padding:16px;border-radius:12px;margin:12px 0;border:1px solid #222}
+label{display:block;font-size:13px;color:var(--muted);margin:6px 0}
+textarea{width:100%;min-height:64px;padding:8px;border-radius:8px;border:1px solid #333;background:#101013;color:var(--text)}
+input[type=time]{background:#101013;border:1px solid #333;color:var(--text);padding:6px;border-radius:8px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+button{border:none;border-radius:10px;padding:12px 14px;color:#fff;background:#333;cursor:pointer}
+button.primary{background:linear-gradient(180deg,#3f79ff,#2f58d8)}
+button.secondary{background:#2b2b30}
+button.small{padding:8px 10px;font-size:12px}
+button.danger{background:linear-gradient(180deg,#ff6b6b,#c94b4b)}
+button.warning{background:linear-gradient(180deg,#ffc857,#d6a23a);color:#111}
+button.success{background:linear-gradient(180deg,#48d597,#2aa97d)}
+button:disabled{opacity:0.6;cursor:not-allowed}
+#timerDisplay{font-size:56px;font-weight:700;letter-spacing:1px;margin:8px 0}
+.muted{color:var(--muted)}
+.helper{margin-top:8px;padding:10px;border-radius:8px;background:#0f2236;border:1px solid #1a3a5a;white-space:pre-line}
+.ifthen{display:grid;gap:8px}
+.ifthen .rule{padding:10px;border-radius:8px;background:#121219;border:1px solid #2a2a35}
+.ifthen .rule h4{margin:0 0 4px 0}
+ul.loglist{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+ul.loglist li{background:#101013;border:1px solid #262631;border-radius:10px;padding:10px}
+label.file{display:inline-flex;gap:6px;align-items:center;padding:8px 10px;background:#2b2b30;border-radius:8px;cursor:pointer}
+@media (max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
