@@ -59,6 +59,36 @@
   </section>
 
   <section class="card">
+    <h2>✅ 今日最低標 3 件事</h2>
+    <div class="grid tasks">
+      <label for="deepTask1Text">深度任務 1
+        <div class="task-input">
+          <input id="deepTask1Text" type="text" placeholder="例：讀完章節 3">
+          <span><input id="deepTask1Done" type="checkbox"> 完成</span>
+        </div>
+      </label>
+      <label for="deepTask2Text">深度任務 2
+        <div class="task-input">
+          <input id="deepTask2Text" type="text" placeholder="例：寫出 5 個重點">
+          <span><input id="deepTask2Done" type="checkbox"> 完成</span>
+        </div>
+      </label>
+      <label for="smallTask1Text">小任務 1
+        <div class="task-input">
+          <input id="smallTask1Text" type="text" placeholder="例：整理講義">
+          <span><input id="smallTask1Done" type="checkbox"> 完成</span>
+        </div>
+      </label>
+      <label for="smallTask2Text">小任務 2
+        <div class="task-input">
+          <input id="smallTask2Text" type="text" placeholder="例：回覆 Email">
+          <span><input id="smallTask2Done" type="checkbox"> 完成</span>
+        </div>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>⏱️ 計時器</h2>
     <div id="timerDisplay">00:00</div>
     <div id="stateDisplay" class="muted">狀態：Idle</div>
@@ -103,7 +133,8 @@
   <small>v0.1 · 本地儲存 · 可安裝為 PWA（iOS/Windows）</small>
 </footer>
 
-<script src="main.js"></script>
-<div id="build" style="position:fixed;right:8px;bottom:8px;opacity:.6">Build A1</div>
+<script defer src="db.js"></script>
+<script defer src="main.js"></script>
+<div id="build" style="position:fixed;right:8px;bottom:8px;opacity:.6">Build: A2</div>
 </body>
 </html>
