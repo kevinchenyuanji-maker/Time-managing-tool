@@ -11,6 +11,12 @@ textarea{width:100%;min-height:64px;padding:8px;border-radius:8px;border:1px sol
 input[type=time]{background:#101013;border:1px solid #333;color:var(--text);padding:6px;border-radius:8px}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.tasks label{display:flex;flex-direction:column;gap:6px;background:#101013;border:1px solid #2a2a35;padding:10px;border-radius:10px;font-size:13px;color:var(--muted)}
+.task-input{display:flex;gap:8px;align-items:center;background:#0c0c12;border-radius:8px;padding:8px;border:1px solid #333}
+.task-input input[type=text]{flex:1;background:transparent;border:none;color:var(--text);font-size:14px}
+.task-input input[type=text]:focus{outline:none}
+.task-input span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.task-input input[type=checkbox]{width:16px;height:16px}
 button{border:none;border-radius:10px;padding:12px 14px;color:#fff;background:#333;cursor:pointer}
 button.primary{background:linear-gradient(180deg,#3f79ff,#2f58d8)}
 button.secondary{background:#2b2b30}

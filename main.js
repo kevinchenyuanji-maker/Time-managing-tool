@@ -1,6 +1,15 @@
-let data = load();
+let currentSettings = null;
+let currentDay = null;
+let eventsBound = false;
+let tickStarted = false;
 let state = { mode:'IDLE', endAt:null, paused:false, pauseLeft:0, tickHandle:null, notificationGranted:false };
 const $ = sel => document.querySelector(sel);
+const TASK_FIELDS = [
+  { key:'deepTask1', textId:'deepTask1Text', doneId:'deepTask1Done' },
+  { key:'deepTask2', textId:'deepTask2Text', doneId:'deepTask2Done' },
+  { key:'smallTask1', textId:'smallTask1Text', doneId:'smallTask1Done' },
+  { key:'smallTask2', textId:'smallTask2Text', doneId:'smallTask2Done' }
+];
 
 const IFTHEN = [
   {id:'Start-Friction-01', when:'IDLE', text:'胸口發緊/想逃 → 先做 5 分鐘：設鬧鐘→打開講義→寫 1 句目標→讀第一頁。5 分鐘後可停。'},
@@ -12,55 +21,105 @@ const IFTHEN = [
   {id:'Energy-02', when:'SURGE', text:'想爆衝：今日最多 2 個 50′ 深度段；加碼請寫在紙上排明天第一段。'}
 ];
 
-function load(){
-  try{ return JSON.parse(localStorage.getItem('mvd_data_v1')) || {
-    settings:{primaryStart:'08:30',primaryEnd:'09:30',fallbackStart:'13:30',fallbackEnd:'14:30',recoveryStart:'21:00'},
-    day:{date:today(), goal:'', frictionLogs:[], sessions:[], done:false}
-  }; }catch(e){ return {settings:{}, day:{date:today(), goal:'', frictionLogs:[], sessions:[]}};}
+function defaultSettings(){
+  return {primaryStart:'08:30',primaryEnd:'09:30',fallbackStart:'13:30',fallbackEnd:'14:30',recoveryStart:'21:00', lastDayDate:today()};
 }
-function save(){ localStorage.setItem('mvd_data_v1', JSON.stringify(data)); }
-function today(){ return new Date().toISOString().slice(0,10); }
+function defaultTasks(){
+  return {
+    deepTask1:{text:'',done:false},
+    deepTask2:{text:'',done:false},
+    smallTask1:{text:'',done:false},
+    smallTask2:{text:'',done:false}
+  };
+}
+function defaultDay(date=today()){
+  return {date, goal:'', frictionLogs:[], sessions:[], done:false, tasks:defaultTasks()};
+}
+function mergeSettings(settings){
+  return {...defaultSettings(), ...(settings||{})};
+}
+function ensureTasks(day){
+  const base = defaultTasks();
+  const existing = (day && day.tasks) || {};
+  const merged = {};
+  for (const key of Object.keys(base)){
+    const value = existing[key] || {};
+    merged[key] = { text: value.text || '', done: !!value.done };
+  }
+  return merged;
+}
+function normalizeDay(day){
+  if (!day) return defaultDay();
+  const normalized = {...defaultDay(day.date || today()), ...day};
+  normalized.frictionLogs = Array.isArray(day.frictionLogs) ? day.frictionLogs : [];
+  normalized.sessions = Array.isArray(day.sessions) ? day.sessions : [];
+  normalized.tasks = ensureTasks(day);
+  return normalized;
+}
+function today(){
+  return new Date().toISOString().slice(0,10);
+}
 
-function init(){
-  // Settings
-  $('#primaryStart').value = data.settings.primaryStart || '';
-  $('#primaryEnd').value = data.settings.primaryEnd || '';
-  $('#fallbackStart').value = data.settings.fallbackStart || '';
-  $('#fallbackEnd').value = data.settings.fallbackEnd || '';
-  $('#recoveryStart').value = data.settings.recoveryStart || '21:00';
-  $('#goal').value = data.day.goal || '';
+function refreshUI(){
+  if (!currentSettings || !currentDay) return;
+  $('#primaryStart').value = currentSettings.primaryStart || '';
+  $('#primaryEnd').value = currentSettings.primaryEnd || '';
+  $('#fallbackStart').value = currentSettings.fallbackStart || '';
+  $('#fallbackEnd').value = currentSettings.fallbackEnd || '';
+  $('#recoveryStart').value = currentSettings.recoveryStart || '21:00';
+  $('#goal').value = currentDay.goal || '';
+  TASK_FIELDS.forEach(({key, textId, doneId}) => {
+    const task = (currentDay.tasks && currentDay.tasks[key]) || {text:'',done:false};
+    const textEl = document.getElementById(textId);
+    const doneEl = document.getElementById(doneId);
+    if (textEl) textEl.value = task.text || '';
+    if (doneEl) doneEl.checked = !!task.done;
+  });
+}
 
-  // Events
-  $('#saveSettings').onclick = () => {
-    data.settings = {
+function setupEventHandlers(){
+  if (eventsBound) return;
+
+  $('#saveSettings').onclick = async () => {
+    const lastDayDate = currentSettings?.lastDayDate || currentDay?.date || today();
+    currentSettings = {
+      ...currentSettings,
       primaryStart:$('#primaryStart').value,
       primaryEnd:$('#primaryEnd').value,
       fallbackStart:$('#fallbackStart').value,
       fallbackEnd:$('#fallbackEnd').value,
-      recoveryStart:$('#recoveryStart').value
+      recoveryStart:$('#recoveryStart').value,
+      lastDayDate
     };
-    data.day.goal = $('#goal').value;
-    save();
+    currentDay.goal = $('#goal').value;
+    await persistSettings();
+    await persistDay();
     helper('已儲存設定與今日目標。');
   };
-  $('#newDay').onclick = () => {
-    data.day = {date:today(), goal:'', frictionLogs:[], sessions:[], done:false};
-    $('#goal').value='';
+
+  $('#newDay').onclick = async () => {
+    currentDay = defaultDay(today());
+    if (currentSettings) currentSettings = {...currentSettings, lastDayDate: currentDay.date};
+    refreshUI();
     renderLogs();
+    await persistDay();
+    await persistSettings();
     helper('新的一天，先寫下今日最低標 3 件事。');
   };
+
   $('#friction').oninput = e => $('#frictionVal').textContent = e.target.value;
-  $('#logFriction').onclick = () => {
-    data.day.frictionLogs.push({t:Date.now(), val:parseInt($('#friction').value,10)});
-    save(); helper('已記錄當下抗拒分數。');
+  $('#logFriction').onclick = async () => {
+    if (!currentDay) return;
+    currentDay.frictionLogs.push({t:Date.now(), val:parseInt($('#friction').value,10)});
+    await persistDay();
+    helper('已記錄當下抗拒分數。');
   };
 
-  // Timer buttons
-  document.querySelectorAll('.primary').forEach(btn=>{
+  document.querySelectorAll('.primary').forEach(btn => {
     btn.onclick = () => {
       const kind = btn.dataset.timer;
       if (kind) startTimer(kind);
-    }
+    };
   });
   $('#pauseBtn').onclick = pauseTimer;
   $('#resumeBtn').onclick = resumeTimer;
@@ -71,11 +130,50 @@ function init(){
   $('#leisureBtn').onclick = leisureTicket;
   $('#notifyBtn').onclick = requestNotify;
 
-  renderLogs();
-  showIfThen('IDLE');
-  tick();
-  setupInstall();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  TASK_FIELDS.forEach(({key, textId, doneId}) => {
+    const textEl = document.getElementById(textId);
+    const doneEl = document.getElementById(doneId);
+    if (textEl){
+      textEl.addEventListener('input', async () => {
+        if (!currentDay) return;
+        currentDay.tasks[key].text = textEl.value;
+        await persistDay();
+      });
+    }
+    if (doneEl){
+      doneEl.addEventListener('change', async () => {
+        if (!currentDay) return;
+        currentDay.tasks[key].done = doneEl.checked;
+        await persistDay();
+      });
+    }
+  });
+
+  document.querySelector('#exportJson')?.addEventListener('click', exportJson);
+  document.querySelector('#exportCsv')?.addEventListener('click', exportCsv);
+  document.querySelector('#importJson')?.addEventListener('change', ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = async e => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        currentSettings = mergeSettings(parsed.settings || {});
+        currentDay = normalizeDay(parsed.day || defaultDay(today()));
+        if (currentSettings) currentSettings.lastDayDate = currentDay.date;
+        refreshUI();
+        renderLogs();
+        await persistSettings();
+        await persistDay();
+        helper('匯入完成。');
+      } catch(err){
+        helper('匯入失敗。');
+      }
+    };
+    reader.readAsText(f);
+    ev.target.value = '';
+  });
+
+  eventsBound = true;
 }
 
 function helper(msg){ $('#helper').textContent = msg; }
@@ -123,7 +221,7 @@ function stopTimer(){
 function interrupted(){
   finalizeSession(false, '被打斷');
   showIfThen('INTERRUPT');
-  const s = data.settings;
+  const s = currentSettings || defaultSettings();
   const next = nextWindowCandidate(s);
   helper(`建議：改約到 ${next.label}（${next.start}）或今晚 ${s.recoveryStart} 來一個 Recovery 25。`);
   notify('被打斷了','已寫下下一步，建議移到 Fallback 或 Recovery 25。');
@@ -153,17 +251,24 @@ function resetState(){
 }
 
 function saveSession(meta){
-  data.day.sessions.push({id:crypto.randomUUID(), ...meta, end:null, done:false, notes:''});
-  save(); renderLogs();
+  if (!currentDay) return;
+  const session = {id:crypto.randomUUID(), ...meta, end:null, done:false, notes:'', date:currentDay.date};
+  currentDay.sessions.push(session);
+  persistDay();
+  DB.addSession(session).catch(err => console.error('新增時段失敗', err));
+  renderLogs();
 }
 function finalizeSession(done, notes){
-  const sess = data.day.sessions.find(s => !s.end);
+  if (!currentDay) return;
+  const sess = currentDay.sessions.find(s => !s.end);
   if (!sess) return;
   sess.end = Date.now();
   sess.done = !!done;
   if (notes) sess.notes = (sess.notes||'') + notes;
   sess.actual = Math.round((sess.end - sess.start)/60000);
-  save(); renderLogs();
+  persistDay();
+  DB.addSession(sess).catch(err => console.error('更新時段失敗', err));
+  renderLogs();
 }
 
 function tick(){
@@ -188,8 +293,11 @@ function tick(){
 }
 
 function renderLogs(){
-  const ul = document.querySelector('#logList'); ul.innerHTML='';
-  (data.day.sessions||[]).slice().reverse().forEach(s => {
+  const ul = document.querySelector('#logList');
+  if (!ul) return;
+  ul.innerHTML='';
+  const sessions = (currentDay && currentDay.sessions) ? currentDay.sessions.slice().reverse() : [];
+  sessions.forEach(s => {
     const li = document.createElement('li');
     const start = new Date(s.start).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     const end = s.end ? new Date(s.end).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
@@ -213,35 +321,84 @@ function notify(title, body){
   try{ if (state.notificationGranted) new Notification(title,{body}); }catch(e){}
 }
 
-// export/import
 function exportJson(){
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const payload = { settings: currentSettings, day: currentDay };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `mvd_${data.day.date}.json`; a.click();
+  const filename = currentDay?.date || today();
+  a.download = `mvd_${filename}.json`; a.click();
 }
 function exportCsv(){
   const header = 'date,type,start,end,actual,done,notes\n';
-  const rows = (data.day.sessions||[]).map(s => [
-    data.day.date, labelOf(s.type),
+  const rows = (currentDay?.sessions||[]).map(s => [
+    currentDay.date, labelOf(s.type),
     new Date(s.start).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
     s.end?new Date(s.end).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'',
     s.actual||'', s.done?'1':'0', (s.notes||'').replace(/,/g,';')
   ].join(','));
-  download(header + rows.join('\n'), `mvd_${data.day.date}.csv`, 'text/csv');
+  download(header + rows.join('\n'), `mvd_${currentDay?.date||today()}.csv`, 'text/csv');
 }
 function download(content, filename, mime){
   const blob = new Blob([content], {type:mime}); const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = filename; a.click();
 }
 
-document.querySelector('#exportJson')?.addEventListener('click', exportJson);
-document.querySelector('#exportCsv')?.addEventListener('click', exportCsv);
-document.querySelector('#importJson')?.addEventListener('change', ev => {
-  const f = ev.target.files[0]; if (!f) return;
-  const reader = new FileReader();
-  reader.onload = e => { try{ data = JSON.parse(e.target.result); save(); init(); helper('匯入完成。'); }catch(err){ helper('匯入失敗。'); } };
-  reader.readAsText(f);
-});
+function clone(obj){
+  return JSON.parse(JSON.stringify(obj));
+}
+function persistSettings(){
+  if (!currentSettings) return Promise.resolve();
+  return DB.saveSettings(clone(currentSettings)).catch(err => console.error('儲存設定失敗', err));
+}
+function persistDay(){
+  if (!currentDay) return Promise.resolve();
+  return DB.upsertDay(clone(currentDay)).catch(err => console.error('儲存每日資料失敗', err));
+}
+
+async function loadData(){
+  const todayDate = today();
+  const [settingsFromDB, todayRecord] = await Promise.all([
+    DB.getSettings().catch(() => null),
+    DB.getDay(todayDate).catch(() => null)
+  ]);
+  currentSettings = mergeSettings(settingsFromDB || {});
+  let dayRecord = todayRecord;
+  const lastDayDate = currentSettings.lastDayDate;
+  if (!dayRecord && lastDayDate && lastDayDate !== todayDate){
+    dayRecord = await DB.getDay(lastDayDate).catch(() => null);
+  }
+  currentDay = normalizeDay(dayRecord || defaultDay(lastDayDate || todayDate));
+  if (!dayRecord) await persistDay();
+  if (!settingsFromDB || currentSettings.lastDayDate !== currentDay.date){
+    currentSettings.lastDayDate = currentDay.date;
+    await persistSettings();
+  }
+}
+
+function ensureTick(){
+  if (!tickStarted){
+    tickStarted = true;
+    tick();
+  }
+}
+
+async function boot(){
+  try {
+    await DB.ready;
+    await DB.migrateFromLocalStorage();
+    await loadData();
+    console.log('IndexedDB ready');
+    setupEventHandlers();
+    refreshUI();
+    renderLogs();
+    showIfThen('IDLE');
+    ensureTick();
+    setupInstall();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  } catch (err) {
+    console.error('初始化失敗', err);
+  }
+}
 
 function beep(freq=880, dur=0.1){
   try{
@@ -255,7 +412,6 @@ function beep(freq=880, dur=0.1){
   }catch(e){}
 }
 
-// PWA install
 function setupInstall(){
   let deferredPrompt = null;
   const btn = document.querySelector('#installBtn');
@@ -270,4 +426,4 @@ function setupInstall(){
   });
 }
 
-window.addEventListener('load', init);
+window.addEventListener('load', boot);
