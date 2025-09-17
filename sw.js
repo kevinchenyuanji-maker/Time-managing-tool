@@ -1,5 +1,5 @@
 // sw.js
-const CACHE = 'mvd-v4-2025-09-17'; // ← 每次部署改一個新字串
+const CACHE = 'mvd-v5-2025-09-17'; // ← 每次部署改一個新字串
 self.addEventListener('install', (evt) => {
   evt.waitUntil(
     caches.open(CACHE).then(c => c.addAll(['./','./index.html','./style.css','./main.js','./manifest.json']))
