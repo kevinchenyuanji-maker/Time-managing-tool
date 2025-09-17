@@ -1,6 +1,6 @@
 (function(){
   const DB_NAME = 'mvd';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const SETTINGS_ID = 'default';
 
   const dbPromise = new Promise((resolve, reject) => {
@@ -17,16 +17,29 @@
     };
     request.onupgradeneeded = () => {
       const db = request.result;
+      const tx = request.transaction;
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('days')) {
         db.createObjectStore('days', { keyPath: 'date' });
       }
+      let sessionStore;
       if (!db.objectStoreNames.contains('sessions')) {
-        const sessionStore = db.createObjectStore('sessions', { keyPath: 'id' });
-        sessionStore.createIndex('by_date', 'date', { unique: false });
-        sessionStore.createIndex('by_start', 'start', { unique: false });
+        sessionStore = db.createObjectStore('sessions', { keyPath: 'id' });
+      } else if (tx) {
+        sessionStore = tx.objectStore('sessions');
+      }
+      if (sessionStore) {
+        if (!sessionStore.indexNames.contains('by_date')) {
+          sessionStore.createIndex('by_date', 'date', { unique: false });
+        }
+        if (!sessionStore.indexNames.contains('by_start')) {
+          sessionStore.createIndex('by_start', 'start', { unique: false });
+        }
+        if (!sessionStore.indexNames.contains('by_type')) {
+          sessionStore.createIndex('by_type', 'type', { unique: false });
+        }
       }
       if (!db.objectStoreNames.contains('ifthen')) {
         db.createObjectStore('ifthen', { keyPath: 'id' });
@@ -204,6 +217,15 @@
     });
   }
 
+  async function countDeepBlocks(startDate, endDate){
+    const sessions = await getSessionsInRange(startDate, endDate).catch(() => []);
+    return sessions.reduce((sum, session) => {
+      if (!session) return sum;
+      const type = session.type;
+      return (type === 'DEEP_50' || type === 'POMO_25') ? sum + 1 : sum;
+    }, 0);
+  }
+
   const DB = {
     ready: dbPromise,
     migrateFromLocalStorage: ensureMigration,
@@ -211,6 +233,7 @@
     upsertDay,
     addSession,
     getSessionsInRange,
+    countDeepBlocks,
     getSettings,
     saveSettings
   };

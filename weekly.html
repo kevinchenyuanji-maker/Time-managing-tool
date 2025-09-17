@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>週回顧 · 穩定日常 MVD</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>週回顧（MVD）</h1>
+  <div class="header-actions">
+    <a href="index.html" class="secondary small button-link">回到今日</a>
+  </div>
+</header>
+<main>
+  <section class="card">
+    <h2>📈 最近 7 天摘要</h2>
+    <p class="muted" id="dateRange"></p>
+    <div class="metrics">
+      <div class="metric-card">
+        <h3>完成率</h3>
+        <div class="metric-value" id="completionRate">--%</div>
+        <div class="metric-note">四個最低標（深度×2 + 小任務×2）全部勾選的天數 ÷ 7</div>
+      </div>
+      <div class="metric-card">
+        <h3>深度段數</h3>
+        <div class="metric-value" id="deepBlocksTotal">--</div>
+        <div class="metric-note">sessions 中 type ∈ {DEEP_50, POMO_25} 的總數</div>
+      </div>
+      <div class="metric-card">
+        <h3>被打斷次數</h3>
+        <div class="metric-value" id="interruptsTotal">--</div>
+        <div class="metric-note">notes 含「被打斷」或 type = INTERRUPT 的計數</div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="exportWeeklyCsv" class="secondary small">匯出 CSV</button>
+    </div>
+    <table class="table-card" id="weeklyTable">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>完成最低標</th>
+          <th>深度段數</th>
+          <th>被打斷次數</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="metric-note" id="status"></p>
+  </section>
+</main>
+<footer>
+  <small>資料僅儲存在本機 IndexedDB · 可安裝為 PWA</small>
+</footer>
+<script defer src="db.js"></script>
+<script defer src="weekly.js"></script>
+<div id="build" style="position:fixed;right:8px;bottom:8px;opacity:.6">Build B1</div>
+</body>
+</html>
